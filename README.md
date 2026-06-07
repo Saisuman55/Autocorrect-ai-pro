@@ -1,5 +1,9 @@
 # AI Autocorrect Pro — Pinnacle Labs 2026
 
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-autocorrect--ai--pro.vercel.app-brightgreen?style=for-the-badge)](https://autocorrect-ai-pro.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-Saisuman55-black?style=for-the-badge&logo=github)](https://github.com/Saisuman55/Autocorrect-ai-pro)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+
 > 🧠 **AI-powered offline writing assistant** — instant grammar correction, tone rewriting (Formal / Casual / Professional), plagiarism detection & document export. Built with Node.js, Vanilla JS & Nspell. No cloud. No API keys. Pinnacle Labs 2026.
 
 Built by **Sai Suman Samantaray** during the **Pinnacle Labs AI Internship 2026**.
