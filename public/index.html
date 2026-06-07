@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AutoCorrect AI Pro — Pinnacle Labs</title>
+<meta name="description" content="Offline AI autocorrect — spelling, grammar, tone rewriting, plagiarism check. No API key needed."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>tailwind.config={darkMode:"class",theme:{extend:{}}}</script>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+/* ── CSS Variables ── */
+:root{
+  --primary:#98d779;--on-primary:#0f3900;--primary-container:#7ab75d;--on-primary-container:#154600;
+  --secondary-container:#03c6b2;--on-secondary-container:#004d44;
+  --tertiary:#c0c1ff;--tertiary-container:#9b9eff;--on-tertiary-container:#221eb5;
+  --bg:#0b1326;--on-bg:#dae2fd;--surface:#0b1326;--on-surface:#dae2fd;
+  --surface-container:#171f33;--surface-container-low:#131b2e;
+  --surface-container-lowest:#060e20;--surface-container-high:#222a3d;
+  --outline:#8b9383;--outline-variant:#42493c;
+  --green:#98d779;--amber:#f59e0b;--red:#f87171;
+  --t1:#dae2fd;--t2:#c1c9b8;--t3:#8b9383;
+  --glass:rgba(23,31,51,0.7);--border:rgba(66,73,60,0.5);
+  --mono:'JetBrains Mono',monospace;--ease:cubic-bezier(0.4,0,0.2,1);
+}
+html:not(.dark){
+  --primary:#336b1a;--on-primary:#fff;--primary-container:#b3f492;--on-primary-container:#062100;
+  --secondary-container:#c9edb6;--on-secondary-container:#4e6c41;
+  --tertiary:#576155;--tertiary-container:#dbe6d6;--on-tertiary-container:#364034;
+  --bg:#f8f9fa;--on-bg:#191c1d;--surface:#f8f9fa;--on-surface:#191c1d;
+  --surface-container:#edeeef;--surface-container-low:#f3f4f5;
+  --surface-container-lowest:#fff;--surface-container-high:#e7e8e9;
+  --outline:#727a6b;--outline-variant:#c1c9b8;
+  --green:#336b1a;--amber:#d97706;--red:#ba1a1a;
+  --t1:#191c1d;--t2:#42493c;--t3:#727a6b;
+  --glass:rgba(255,255,255,0.7);--border:rgba(193,201,184,0.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--on-bg);display:flex;height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--outline);border-radius:3px}
+
+/* ── SIDEBAR ── */
+.sidebar{width:256px;flex-shrink:0;background:var(--surface-container-lowest);border-right:1px solid var(--outline-variant);display:flex;flex-direction:column;padding:16px;gap:6px;overflow-y:auto}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:6px 4px 14px}
+.sb-logo{background:var(--primary);padding:7px;border-radius:10px;display:flex;flex-shrink:0}
+.sb-name{font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;color:var(--primary);letter-spacing:-.02em}
+.sb-sub{font-size:11px;color:var(--t3)}
+.sb-nav{flex:1;display:flex;flex-direction:column;gap:3px}
+.sb-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;border:none;background:none;cursor:pointer;width:100%;text-align:left;color:var(--t2);font-size:14px;font-weight:600;transition:background .15s,color .15s}
+.sb-link:hover{background:var(--surface-container-high);color:var(--t1)}
+.sb-link.active{background:var(--secondary-container);color:var(--on-secondary-container)}
+.sb-stats{background:var(--surface-container);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.sb-stat-row{display:flex;justify-content:space-between;align-items:center}
+.sb-stat-lbl{font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.sb-stat-val{font-size:16px;font-weight:800;color:var(--primary)}
+.sb-footer{padding-top:12px;border-top:1px solid var(--outline-variant);display:flex;flex-direction:column;gap:3px}
+.sb-footer-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:none;background:none;cursor:pointer;color:var(--t3);font-size:13px;width:100%;transition:color .15s}
+.sb-footer-btn:hover{color:var(--primary)}
+.status-pulse{width:8px;height:8px;border-radius:50%;background:var(--outline);flex-shrink:0}
+.status-pulse.on{background:var(--green);animation:pulse 2s ease-in-out infinite}
+.status-pulse.err{background:var(--red)}
+
+/* ── MAIN AREA ── */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-bar{background:var(--surface);border-bottom:1px solid var(--outline-variant);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.tb-tabs{display:flex;gap:3px}
+.tb-tab{padding:6px 16px;border-radius:8px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--t3);transition:all .15s}
+.tb-tab:hover{color:var(--t1);background:var(--surface-container)}
+.tb-tab.active{color:var(--primary);background:rgba(152,215,121,.08)}
+.tb-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--outline-variant);background:var(--surface-container);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:background .15s}
+.icon-btn:hover{background:var(--surface-container-high);color:var(--t1)}
+.btn-ghost{display:flex;align-items:center;gap:6px;background:var(--surface-container-high);border:1px solid var(--outline-variant);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .15s}
+.btn-ghost:hover{color:var(--t1)}
+.btn-primary{display:flex;align-items:center;gap:6px;background:var(--primary);border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;color:var(--on-primary);cursor:pointer;transition:opacity .15s}
+.btn-primary:hover{opacity:.9}
+
+/* ── TABS ── */
+.tab-container{flex:1;overflow:hidden;position:relative}
+.tab{display:none;flex-direction:column;gap:16px;padding:20px 24px;height:100%;overflow-y:auto}
+.tab.active{display:flex}
+.page-title{font-family:'Manrope',sans-serif;font-size:26px;font-weight:800;color:var(--t1);letter-spacing:-.02em}
+.page-hint{font-size:14px;color:var(--t3);margin-top:3px}
+
+/* ── TONE BAR ── */
+.tone-bar{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.tone-lbl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px}
+.tone-pills{display:flex;gap:6px;flex-wrap:wrap}
+.tone-pill{border:none;border-radius:999px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface-container-high);color:var(--t2);transition:all .15s}
+.tone-pill.active{background:var(--primary);color:var(--on-primary)}
+.tone-desc{font-size:13px;font-style:italic;color:var(--tertiary)}
+
+/* ── UPLOAD ── */
+.upload-zone{border:2px dashed var(--outline-variant);border-radius:12px;background:transparent;cursor:pointer;transition:border-color .2s,background .2s}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--primary);background:rgba(152,215,121,.03)}
+.upload-inner{display:flex;align-items:center;gap:14px;padding:12px 18px;flex-wrap:wrap}
+.fmt-tag{background:var(--surface-container-high);color:var(--t3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700}
+.file-loaded{display:none;align-items:center;gap:10px;padding:11px 16px}
+.file-size{font-size:11px;color:var(--t3)}
+.file-remove{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;margin-left:auto}
+
+/* ── EDITOR GRID ── */
+.editor-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;min-height:380px}
+.editor-pane{background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.pane-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--outline-variant);flex-shrink:0;position:relative;z-index:1}
+.pane-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3)}
+.pane-foot{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--outline-variant);flex-shrink:0;position:relative;z-index:1;align-items:center}
+.editor-textarea{flex:1;resize:none;background:transparent;border:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;color:var(--t1);padding:16px}
+.editor-output{flex:1;padding:16px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;color:var(--t1);overflow-y:auto;white-space:pre-wrap;word-break:break-word;position:relative;z-index:1}
+.editor-output kbd{background:var(--surface-container);border:1px solid var(--outline-variant);border-radius:4px;padding:1px 6px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--t1)}
+.ai-pattern{position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:radial-gradient(var(--primary) 1px,transparent 1px);background-size:20px 20px}
+.center-btn{display:flex;align-items:center;justify-content:center}
+.arrow-btn{background:var(--primary);color:var(--on-primary);width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(152,215,121,.3);transition:transform .15s,box-shadow .15s}
+.arrow-btn:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(152,215,121,.4)}
+.mini-btn{display:flex;align-items:center;gap:5px;background:var(--surface-container);border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;transition:background .15s}
+.mini-btn:hover{background:var(--surface-container-high);color:var(--t1)}
+.mini-btn:disabled{opacity:.5;cursor:not-allowed}
+.mini-btn.accent{background:var(--surface-container-high)}
+.engine-tag{background:var(--tertiary-container);color:var(--on-tertiary-container);font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px}
+.char-counter{font-size:11px;color:var(--t3)}
+
+/* ── LIVE TOGGLE ── */
+.live-toggle-wrap{display:flex;align-items:center;gap:8px;background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:999px;padding:6px 14px;cursor:pointer;user-select:none}
+.live-toggle-wrap input{display:none}
+.live-track{width:36px;height:20px;background:var(--outline);border-radius:999px;position:relative;transition:background .2s;flex-shrink:0}
+.live-track.on{background:var(--primary)}
+.live-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;background:white;border-radius:50%;transition:left .2s}
+.live-track.on .live-thumb{left:calc(100% - 17px)}
+.live-lbl{font-size:12px;font-weight:600;color:var(--t2)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1s ease-in-out infinite;display:none}
+.live-indicator{display:none;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--green)}
+.li-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1s ease-in-out infinite}
+
+/* ── PLAG BUTTON ── */
+.plag-btn{display:flex;align-items:center;gap:6px;border:1px solid var(--primary);color:var(--primary);background:transparent;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.plag-btn:hover{background:rgba(152,215,121,.08)}
+.plag-btn.running{opacity:.6;pointer-events:none}
+
+/* ── BANNERS ── */
+.banner{display:none;align-items:center;gap:12px;border-radius:10px;padding:13px 18px}
+.banner.loading{background:var(--surface-container);border:1px solid var(--outline-variant)}
+.banner.error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25)}
+.banner-x{background:none;border:none;cursor:pointer;font-size:16px;color:inherit;padding:2px;margin-left:auto}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);animation:dot-bounce 1.2s ease-in-out infinite;margin:0 2px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+
+/* ── ACCURACY ── */
+.accuracy-row{display:none;flex-direction:row;gap:12px}
+.acc-card{background:var(--surface-container);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center;flex:1}
+.acc-value{font-size:28px;font-weight:900;color:var(--t1);font-variant-numeric:tabular-nums}
+.acc-label{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.acc-icon{font-size:18px;margin-bottom:4px}
+
+/* ── PLAGIARISM MODAL ── */
+.plag-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.plag-modal-overlay.open{display:flex;animation:fadeUp .2s ease}
+.plag-modal{background:var(--surface-container-lowest);border:1px solid rgba(245,158,11,.25);border-radius:18px;width:100%;max-width:860px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.plag-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(245,158,11,.06);border-bottom:1px solid rgba(245,158,11,.15);position:sticky;top:0;z-index:1;backdrop-filter:blur(12px)}
+.plag-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;color:#f59e0b}
+.plag-score-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;padding:20px;align-items:start}
+.plag-circle-wrap{position:relative;flex-shrink:0}
+.plag-score-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.plag-score-num{font-size:28px;font-weight:900;color:var(--t1);line-height:1;letter-spacing:-.04em}
+.plag-score-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+.plag-chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plag-chip{background:var(--surface-container);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center}
+.pc-val{font-size:22px;font-weight:800;color:var(--t1)}
+.pc-lbl{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.plag-analysis{background:var(--surface-container);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--t2);line-height:1.6;min-width:160px}
+.plag-matches{display:flex;flex-direction:column;border-top:1px solid var(--outline-variant)}
+.pm-item{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border)}
+.pm-item:last-child{border-bottom:none}
+.pm-risk{flex-shrink:0;margin-top:2px;padding:3px 9px;border-radius:6px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.pm-risk.high{background:rgba(248,113,113,.15);color:#f87171}
+.pm-risk.medium{background:rgba(245,158,11,.12);color:#f59e0b}
+.pm-risk.low{background:rgba(152,215,121,.12);color:var(--green)}
+.pm-detail{flex:1;min-width:0}
+.pm-phrase{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t1);background:rgba(245,158,11,.08);border-left:2px solid #f59e0b;padding:4px 10px;border-radius:0 4px 4px 0;margin-bottom:4px;word-break:break-word}
+.pm-source{font-size:11.5px;color:var(--t2)}
+.pm-empty{padding:28px;text-align:center;color:var(--green);font-size:14px;font-weight:600}
+.plag-highlight-card{border-top:1px solid var(--outline-variant)}
+.phc-head{padding:10px 20px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--outline-variant)}
+.plag-highlighted{padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:2;color:var(--t1);word-break:break-word}
+.ph-mark{background:rgba(245,158,11,.2);color:#f59e0b;border-radius:4px;padding:1px 4px;border-bottom:2px solid #f59e0b;cursor:help}
+.ring-green{stroke:var(--green)!important}.ring-amber{stroke:#f59e0b!important}.ring-red{stroke:#f87171!important}
+.plag-offline-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(152,215,121,.1);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px}
+
+/* ── RESULTS SECTION ── */
+.results-section{display:none;flex-direction:column;border:1px solid var(--outline-variant);border-radius:14px;overflow:hidden;background:var(--surface-container-lowest)}
+.summary-bar{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--outline-variant);background:var(--surface-container)}
+.result-tabs{display:flex;border-bottom:1px solid var(--outline-variant);padding:0 8px}
+.rt{padding:9px 16px;font-size:13px;font-weight:600;color:var(--t3);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;transition:all .15s}
+.rt.active{color:var(--primary);border-bottom-color:var(--primary)}
+.rt-count{font-size:10px;background:var(--primary);color:var(--on-primary);border-radius:999px;padding:1px 6px;margin-left:4px}
+.rt-panel{display:none}.rt-panel.active{display:block}
+.diff-view{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.8;color:var(--t1);padding:16px}
+.d-removed{background:rgba(248,113,113,.15);color:#f87171;text-decoration:line-through;border-radius:3px;padding:1px 3px}
+.d-added{background:rgba(152,215,121,.12);color:var(--green);border-radius:3px;padding:1px 3px}
+.diff-legend{display:flex;gap:8px;padding:8px 16px;border-top:1px solid var(--outline-variant)}
+.dl-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.06);color:var(--t3)}
+.dl-pill.red{background:rgba(248,113,113,.12);color:#f87171}
+.dl-pill.green{background:rgba(152,215,121,.1);color:var(--green)}
+.corr-item{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.corr-item:last-child{border-bottom:none}
+.corr-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:4px;flex-shrink:0;margin-top:1px}
+.cb-spelling{background:rgba(248,113,113,.15);color:#f87171}
+.cb-grammar{background:rgba(251,191,36,.12);color:#fbbf24}
+.cb-punctuation{background:rgba(96,165,250,.12);color:#60a5fa}
+.cb-style{background:rgba(167,139,250,.12);color:#a78bfa}
+.cb-tone{background:rgba(34,211,238,.1);color:#22d3ee}
+.corr-detail{flex:1}
+.corr-change{display:flex;align-items:center;gap:8px;font-size:13px}
+.cx-orig{font-family:'JetBrains Mono',monospace;color:#f87171;text-decoration:line-through}
+.cx-arr{color:var(--t3)}
+.cx-fix{font-family:'JetBrains Mono',monospace;color:var(--green)}
+.corr-reason{font-size:11.5px;color:var(--t3);margin-top:3px}
+.explanation-box{padding:18px;font-size:14px;line-height:1.7;color:var(--t2)}
+.sum-chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px}
+.sum-chip.total{background:rgba(152,215,121,.1);color:var(--green)}
+.sum-chip.spell{background:rgba(248,113,113,.1);color:#f87171}
+.sum-chip.grammar{background:rgba(251,191,36,.1);color:#fbbf24}
+.sum-chip.punct{background:rgba(96,165,250,.1);color:#60a5fa}
+.sum-chip.style{background:rgba(167,139,250,.1);color:#a78bfa}
+
+/* ── HISTORY ── */
+.history-list{display:flex;flex-direction:column;gap:12px}
+.h-card{background:var(--surface-container);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.h-card-head{padding:10px 16px;background:var(--surface-container-high);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--t3)}
+.h-session{font-weight:700;color:var(--primary)}
+.h-body{display:grid;grid-template-columns:1fr 1fr;font-size:13px;color:var(--t2)}
+.h-col{padding:12px 16px;line-height:1.6}
+.h-col:first-child{border-right:1px solid var(--border)}
+.h-col-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:6px}
+
+/* ── SETTINGS PANEL ── */
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;display:none}
+.settings-overlay.open{display:block}
+.settings-panel{position:fixed;right:0;top:0;bottom:0;width:320px;background:var(--surface-container-lowest);border-left:1px solid var(--border);z-index:50;padding:20px;overflow-y:auto;transform:translateX(100%);transition:transform .25s var(--ease);display:flex;flex-direction:column;gap:16px}
+.settings-panel.open{transform:translateX(0)}
+.sp-head{display:flex;align-items:center;justify-content:space-between}
+.sp-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:var(--t1)}
+.sp-close{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px}
+.sp-section{border-bottom:1px solid var(--border);padding-bottom:16px}
+.sp-sec-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:8px}
+.sp-sec-hint{font-size:12px;color:var(--t3);margin-bottom:10px}
+.sp-dict-input{display:flex;gap:8px}
+.sp-input{flex:1;background:var(--surface-container);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--t1);font-size:13px;outline:none;font-family:'Inter',sans-serif}
+.sp-input:focus{border-color:var(--primary)}
+.sp-add-btn{background:var(--primary);color:var(--on-primary);border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.shortcut-table{display:flex;flex-direction:column;gap:6px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t2)}
+kbd{background:var(--surface-container);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t1)}
+.sp-theme-row{display:flex;align-items:center;justify-content:space-between}
+.theme-toggle-btn{display:flex;align-items:center;gap:6px;background:var(--surface-container);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--t1);cursor:pointer}
+.dict-tag{display:inline-flex;align-items:center;gap:6px;background:var(--surface-container);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--t2);margin:3px}
+.dict-tag button{color:var(--t3);background:none;border:none;cursor:pointer;font-size:12px}
+.export-group{display:none;align-items:center;gap:6px;margin-left:auto}
+.export-lbl{font-size:11px;color:var(--t3);font-weight:600}
+.info-card{background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;padding:18px}
+.tech-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ttag{background:var(--surface-container-high);color:var(--t2);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700}
+.empty-state{text-align:center;padding:60px 20px;color:var(--t3)}
+.es-icon{font-size:40px;margin-bottom:12px}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes dot-bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+.spin{animation:spin 1s linear infinite}
+
+/* ── PRINT ── */
+@media print{body>*:not(#printable){display:none!important}#printable{display:block!important;padding:40px}}
+#printable{display:none}
+.print-title{font-size:22px;font-weight:700;margin-bottom:8px}
+.print-meta{color:#666;font-size:12px;margin-bottom:24px}
+.print-body{font-size:15px;line-height:1.8}
+.print-footer{margin-top:40px;color:#999;font-size:11px;border-top:1px solid #eee;padding-top:12px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .editor-grid{grid-template-columns:1fr;min-height:auto}
+  .center-btn{padding:8px 0}
+  .plag-score-row{grid-template-columns:1fr;justify-items:center}
+  .plag-analysis{max-width:100%}
+  .h-body{grid-template-columns:1fr}
+  .h-col:first-child{border-right:none;border-bottom:1px solid var(--border)}
+  .accuracy-row{flex-wrap:wrap}
+}
+</style>
+</head>
+
+<body>
+<!-- Print -->
+<div id="printable">
+  <div class="print-title">AutoCorrect AI Pro — Corrected Document</div>
+  <div class="print-meta" id="printMeta"></div>
+  <div class="print-body" id="printBody"></div>
+  <div class="print-footer">Generated by AutoCorrect AI Pro · Pinnacle Labs 2026 · Sai Suman Samantaray</div>
+</div>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settingsOverlay"></div>
+<aside class="settings-panel" id="settingsPanel">
+  <div class="sp-head">
+    <div class="sp-title">
+      <span class="material-symbols-outlined" style="color:var(--primary);font-size:20px">settings</span>
+      Settings
+    </div>
+    <button class="sp-close" id="spClose">✕</button>
+  </div>
+  <div class="sp-section">
+    <div class="sp-sec-title">Custom Dictionary</div>
+    <p class="sp-sec-hint">Words in this list will not be corrected.</p>
+    <div class="sp-dict-input">
+      <input type="text" id="dictWordInput" placeholder="Type a word…" class="sp-input"/>
+      <button class="sp-add-btn" id="dictAddBtn">Add</button>
+    </div>
+    <div id="dictList" style="margin-top:10px"></div>
+  </div>
+  <div class="sp-section">
+    <div class="sp-sec-title">Keyboard Shortcuts</div>
+    <div class="shortcut-table">
+      <div class="sc-row"><kbd>Ctrl+Enter</kbd><span>Correct text</span></div>
+      <div class="sc-row"><kbd>Ctrl+D</kbd><span>Clear editor</span></div>
+      <div class="sc-row"><kbd>Ctrl+Shift+C</kbd><span>Copy corrected</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="sp-sec-title">Appearance</div>
+    <div class="sp-theme-row">
+      <span style="font-size:13px;color:var(--t2)">Theme</span>
+      <button class="theme-toggle-btn" id="themeToggleBtn">
+        <span>☀️</span><span id="themeLabel">Light Mode</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <span class="material-symbols-outlined" style="color:var(--on-primary);font-size:20px">edit_note</span>
+    </div>
+    <div>
+      <div class="sb-name">AutoCorrect<span style="opacity:.6">AI</span></div>
+      <div class="sb-sub">Pinnacle Labs · 2026</div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <button class="sb-link active" data-tab="editor">
+      <span class="material-symbols-outlined" style="font-size:20px">edit_note</span><span>Editor</span>
+    </button>
+    <button class="sb-link" data-tab="history">
+      <span class="material-symbols-outlined" style="font-size:20px">history</span><span>History</span>
+    </button>
+    <button class="sb-link" data-tab="about">
+      <span class="material-symbols-outlined" style="font-size:20px">info</span><span>About</span>
+    </button>
+  </nav>
+
+  <div class="sb-stats">
+    <div class="sb-stat-row">
+      <span class="sb-stat-lbl">Fixes Made</span>
+      <span class="sb-stat-val" id="statFixes">0</span>
+    </div>
+    <div class="sb-stat-row">
+      <span class="sb-stat-lbl">Docs Corrected</span>
+      <span class="sb-stat-val" id="statDocs">0</span>
+    </div>
+    <div class="sb-stat-row">
+      <span class="sb-stat-lbl">Words Checked</span>
+      <span class="sb-stat-val" id="statWords">0</span>
+    </div>
+  </div>
+
+  <div class="sb-footer">
+    <button class="sb-footer-btn" id="openSettings">
+      <span class="material-symbols-outlined" style="font-size:18px">settings</span>Settings
+    </button>
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px">
+      <span class="status-pulse" id="statusPulse"></span>
+      <span style="font-size:11px;color:var(--t3)" id="statusLabel">Initializing…</span>
+    </div>
+    <div style="font-size:10px;color:var(--t3);padding:0 10px 4px">Sai Suman Samantaray</div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main-area">
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="tb-tabs">
+        <button class="tb-tab active" data-tab="editor">Editor</button>
+        <button class="tb-tab" data-tab="history">History</button>
+        <button class="tb-tab" data-tab="about">About</button>
+      </div>
+    </div>
+    <div class="tb-actions">
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">
+        <span class="material-symbols-outlined" style="font-size:18px">dark_mode</span>
+      </button>
+      <button class="btn-ghost" id="clearAllBtn">
+        <span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>Clear
+      </button>
+      <button class="plag-btn" id="plagBtn" title="Check for plagiarism">
+        <span class="material-symbols-outlined" style="font-size:16px">fact_check</span>
+        Plagiarism
+      </button>
+      <button class="btn-primary" id="correctBtn">
+        <span class="material-symbols-outlined" style="font-size:16px">spellcheck</span>
+        <span id="btnLabel">Correct Text</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tab-container">
+
+    <!-- ═══ EDITOR TAB ═══ -->
+    <section class="tab active" id="tab-editor">
+
+      <!-- Page header + controls -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 class="page-title">Smart Text Editor</h1>
+          <p class="page-hint">Type, paste, or upload a file. Select a tone to rewrite your text.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <!-- Live Mode -->
+          <label class="live-toggle-wrap" for="liveModeCheck">
+            <input type="checkbox" id="liveModeCheck"/>
+            <span class="live-lbl">Live Mode</span>
+            <span id="livePulse" class="live-dot"></span>
+            <div class="live-track" id="liveTrack">
+              <div class="live-thumb" id="liveThumb"></div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tone Selector -->
+      <div class="tone-bar">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <span class="tone-lbl">
+            <span class="material-symbols-outlined" style="font-size:16px">tune</span>Tone:
+          </span>
+          <div class="tone-pills">
+            <button class="tone-pill active" data-tone="default" id="t-default">✦ Default</button>
+            <button class="tone-pill" data-tone="formal" id="t-formal">🎩 Formal</button>
+            <button class="tone-pill" data-tone="casual" id="t-casual">😊 Casual</button>
+            <button class="tone-pill" data-tone="professional" id="t-professional">💼 Professional</button>
+          </div>
+        </div>
+        <span class="tone-desc" id="toneDesc">Fix errors only, keep original tone</span>
+      </div>
+
+      <!-- File Upload -->
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".txt,.docx,.pdf" hidden/>
+        <div class="upload-inner" id="uploadInner">
+          <span class="material-symbols-outlined" style="font-size:22px;color:var(--t3)">upload_file</span>
+          <div style="font-size:13px;color:var(--t3)">
+            <strong style="color:var(--t2)">Drop a file here</strong> or
+            <button id="browseBtn" style="background:none;border:none;color:var(--primary);font-weight:600;cursor:pointer;padding:0;font-size:13px">browse</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="fmt-tag">PDF</span><span class="fmt-tag">DOCX</span><span class="fmt-tag">TXT</span>
+          </div>
+          <span style="font-size:11px;color:var(--t3)">up to 10 MB</span>
+        </div>
+        <div class="file-loaded" id="fileLoaded">
+          <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary)">description</span>
+          <span id="fileLoadedName" style="font-size:13px;color:var(--t1);font-weight:600"></span>
+          <span id="fileLoadedSize" class="file-size"></span>
+          <button id="fileRemoveBtn" class="file-remove">✕</button>
+        </div>
+      </div>
+
+      <!-- Editor Grid -->
+      <div class="editor-grid">
+        <!-- Left: Original -->
+        <div class="editor-pane">
+          <div class="pane-head">
+            <div class="pane-label">
+              <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary)">edit_document</span>
+              Original Text
+            </div>
+            <span class="char-counter" id="charCount">0 / 100,000</span>
+          </div>
+          <textarea id="inputText" class="editor-textarea" maxlength="100000"
+            placeholder="Type or paste your text here…&#10;&#10;Try: i wnt to go too the store tomoro but i fogot my walet"
+            spellcheck="false"></textarea>
+          <div class="pane-foot">
+            <button class="mini-btn" id="pasteBtn">
+              <span class="material-symbols-outlined" style="font-size:15px">content_paste</span>Paste
+            </button>
+            <button class="mini-btn" id="sampleBtn">
+              <span class="material-symbols-outlined" style="font-size:15px">auto_awesome</span>Sample
+            </button>
+            <span style="margin-left:auto;font-size:10px;color:var(--t3)">Ctrl+Enter · Ctrl+D · Ctrl+Shift+C</span>
+          </div>
+        </div>
+
+        <!-- Center: Arrow -->
+        <div class="center-btn">
+          <button class="arrow-btn" id="dividerArrow" onclick="document.getElementById('correctBtn').click()">
+            <span class="material-symbols-outlined" style="font-size:24px">arrow_forward</span>
+          </button>
+        </div>
+
+        <!-- Right: Corrected -->
+        <div class="editor-pane">
+          <div class="ai-pattern"></div>
+          <div class="pane-head" style="backdrop-filter:blur(4px)">
+            <div class="pane-label">
+              <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary)">verified</span>
+              Corrected Text
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="live-indicator" id="liveIndicator">
+                <span class="li-dot"></span>Live
+              </div>
+              <span class="engine-tag">OFFLINE ENGINE</span>
+            </div>
+          </div>
+          <div class="editor-output" id="outputArea">
+            <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;opacity:.6">
+              <div style="width:56px;height:56px;border-radius:50%;background:var(--secondary-container);display:flex;align-items:center;justify-content:center;margin-bottom:12px">
+                <span class="material-symbols-outlined" style="font-size:28px;color:var(--on-secondary-container)">spellcheck</span>
+              </div>
+              <p style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:6px">Ready to polish?</p>
+              <p style="font-size:13px;color:var(--t3)">Corrected text will appear here.<br>Press <kbd>Ctrl+Enter</kbd> to start.</p>
+            </div>
+          </div>
+          <div class="pane-foot" style="backdrop-filter:blur(4px)">
+            <button class="mini-btn" id="copyBtn" disabled>
+              <span class="material-symbols-outlined" style="font-size:15px">content_copy</span>Copy
+            </button>
+            <button class="mini-btn" id="speakBtn" disabled>
+              <span class="material-symbols-outlined" style="font-size:15px">volume_up</span>Speak
+            </button>
+            <div class="export-group" id="exportGroup">
+              <span class="export-lbl">Export:</span>
+              <button class="mini-btn accent" id="exportTxt">TXT</button>
+              <button class="mini-btn accent" id="exportDocx">DOCX</button>
+              <button class="mini-btn accent" id="exportPdf">PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banners -->
+      <div class="banner loading" id="loadingBanner">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="font-size:13px;color:var(--t2)">Analyzing and correcting your text…</span>
+      </div>
+      <div class="banner error" id="errorBanner">
+        <span class="material-symbols-outlined" style="font-size:18px;color:var(--red)">error</span>
+        <span id="errorMsg" style="font-size:13px;color:var(--red);flex:1"></span>
+        <button id="closeErr" class="banner-x" style="color:var(--red)">✕</button>
+      </div>
+
+      <!-- Accuracy Row -->
+      <div class="accuracy-row" id="accuracyRow">
+        <div class="acc-card" id="acc-errors">
+          <div class="acc-icon">⚠️</div><div class="acc-value" id="accErrors">0</div><div class="acc-label">Errors Found</div>
+        </div>
+        <div class="acc-card" id="acc-words">
+          <div class="acc-icon">📝</div><div class="acc-value" id="accWords">0</div><div class="acc-label">Words Checked</div>
+        </div>
+        <div class="acc-card" id="acc-before">
+          <div class="acc-icon">📊</div><div class="acc-value" id="accBefore">–</div><div class="acc-label">Accuracy Before</div>
+        </div>
+        <div class="acc-card" id="acc-after">
+          <div class="acc-icon">✅</div><div class="acc-value" id="accAfter">–</div><div class="acc-label">Accuracy After</div>
+        </div>
+      </div>
+
+      <!-- Plagiarism Section -->
+
+
+      <!-- Results Section -->
+      <div id="resultsSection" class="results-section">
+        <div class="summary-bar" id="summaryBar"></div>
+        <div class="result-tabs">
+          <button class="rt active" data-rt="diff">Changes</button>
+          <button class="rt" data-rt="corrections">Corrections <span class="rt-count" id="rtCount">0</span></button>
+          <button class="rt" data-rt="explanation">Explanation</button>
+        </div>
+        <div>
+          <div class="rt-panel active" id="rtp-diff">
+            <div class="diff-view" id="diffView"></div>
+            <div class="diff-legend">
+              <span class="dl-pill red">Removed</span>
+              <span class="dl-pill green">Added</span>
+              <span class="dl-pill">Unchanged</span>
+            </div>
+          </div>
+          <div class="rt-panel" id="rtp-corrections">
+            <div id="corrList"></div>
+          </div>
+          <div class="rt-panel" id="rtp-explanation">
+            <div class="explanation-box" id="explBox"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Info Cards -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
+        <div class="info-card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(152,215,121,.12);display:flex;align-items:center;justify-content:center">
+              <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24">auto_fix</span>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:var(--primary)">Grammar Tip</span>
+          </div>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">AutoCorrect AI detects subject-verb agreement, irregular verbs, homophones, and 150+ rules — all offline.</p>
+        </div>
+        <div class="info-card">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Built With</div>
+          <div class="tech-tags">
+            <span class="ttag">Node.js</span><span class="ttag">Express</span><span class="ttag">nspell</span>
+            <span class="ttag">mammoth.js</span><span class="ttag">PDF.js</span><span class="ttag">Vanilla JS</span>
+            <span class="ttag">TailwindCSS</span><span class="ttag">Material Symbols</span>
+          </div>
+          <p style="font-size:12px;color:var(--t3);margin-top:10px">100% offline · No API key required · Pinnacle Labs 2026</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ HISTORY TAB ═══ -->
+    <section class="tab" id="tab-history">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h1 class="page-title">Correction History</h1>
+          <p class="page-hint">All corrections from this session.</p>
+        </div>
+        <button id="clearHistoryBtn" class="btn-ghost">Clear All</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <div class="empty-state">
+          <div class="es-icon">📭</div>
+          <p>No corrections yet.<br/>Go to Editor to get started.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ABOUT TAB ═══ -->
+    <section class="tab" id="tab-about">
+      <h1 class="page-title">About AutoCorrect AI Pro</h1>
+      <p class="page-hint" style="margin-bottom:8px">Pinnacle Labs AI Internship 2026 · 100% offline · Zero API key required</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px">
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">🎭</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Tone Rewriter</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">Rewrites in <strong>Formal</strong>, <strong>Casual</strong>, or <strong>Professional</strong> tone.</p>
+        </div>
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">⚡</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Live Typing Mode</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">Auto-corrects 1.5 s after you stop typing.</p>
+        </div>
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">📊</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Accuracy Score</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">Animated error counts and before/after accuracy.</p>
+        </div>
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">📄</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Document Upload</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">PDF, DOCX, TXT drag-and-drop. Up to 10 MB.</p>
+        </div>
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">⬇️</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Export Documents</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">Download corrected text as TXT, DOCX, or PDF.</p>
+        </div>
+        <div class="info-card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:22px">🔍</div>
+          <h3 style="font-size:15px;font-weight:700;color:var(--t1)">Plagiarism Check</h3>
+          <p style="font-size:13px;color:var(--t2);line-height:1.6">450+ trained phrases from literature, speeches, songs, and clichés.</p>
+        </div>
+      </div>
+      <div class="info-card" style="display:flex;align-items:center;gap:16px;margin-top:4px">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--surface-container-high);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span class="material-symbols-outlined" style="color:var(--primary)">person</span>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1)">Sai Suman Samantaray</div>
+          <div style="font-size:12px;color:var(--t3)">AI Intern · Pinnacle Labs 2026 · B.Tech CSE · CV Raman Global University</div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- end tab-container -->
+</main>
+
+<!-- ═══ PLAGIARISM MODAL ═══ -->
+<div class="plag-modal-overlay" id="plagSection">
+  <div class="plag-modal">
+    <div class="plag-header">
+      <div class="plag-title">
+        <span class="material-symbols-outlined" style="font-size:20px">fact_check</span>
+        Plagiarism Analysis
+        <span class="plag-offline-badge">
+          <span class="material-symbols-outlined" style="font-size:12px">wifi_off</span>100% Offline
+        </span>
+      </div>
+      <button class="banner-x" id="closePlag" style="font-size:22px;color:var(--t3);padding:4px 8px">✕</button>
+    </div>
+    <div class="plag-score-row">
+      <div class="plag-circle-wrap">
+        <svg viewBox="0 0 120 120" width="130" height="130">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-container-high)" stroke-width="10"/>
+          <circle id="plagRingArc" cx="60" cy="60" r="50" fill="none" stroke="var(--green)" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"
+            transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 1.2s ease,stroke .4s"/>
+        </svg>
+        <div class="plag-score-center">
+          <div class="plag-score-num" id="plagScore">–</div>
+          <div class="plag-score-lbl">Plagiarism</div>
+        </div>
+      </div>
+      <div class="plag-chips">
+        <div class="plag-chip"><div class="pc-val" id="pcTotalWords">–</div><div class="pc-lbl">Total Words</div></div>
+        <div class="plag-chip"><div class="pc-val" id="pcMatched">–</div><div class="pc-lbl">Matched Phrases</div></div>
+        <div class="plag-chip"><div class="pc-val" id="pcReps">–</div><div class="pc-lbl">Repetitions</div></div>
+        <div class="plag-chip"><div class="pc-val" id="pcRisk">–</div><div class="pc-lbl">Risk Level</div></div>
+      </div>
+      <div class="plag-analysis" id="plagAnalysis"></div>
+    </div>
+    <div id="plagMatchList" class="plag-matches"></div>
+    <div class="plag-highlight-card" id="plagHighlightWrap" style="display:none">
+      <div class="phc-head">Highlighted Text — suspicious phrases marked in orange</div>
+      <div class="plag-highlighted" id="plagHighlighted"></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

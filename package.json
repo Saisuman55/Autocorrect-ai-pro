@@ -1,0 +1,32 @@
+{
+  "name": "autocorrect-ai-pro",
+  "version": "2.0.0",
+  "description": "AI-powered Autocorrect Tool — Pinnacle Labs AI Internship 2026 by Sai Suman Samantaray",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "autocorrect",
+    "nlp",
+    "spellcheck",
+    "grammar",
+    "offline"
+  ],
+  "author": "Sai Suman Samantaray",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dictionary-en": "^3.2.0",
+    "express": "^4.19.2",
+    "nspell": "^2.1.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "puppeteer": "^25.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
